@@ -1,0 +1,91 @@
+@startuml use-cases
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #EAF2FB
+  BorderColor #1F3864
+  FontColor #000000
+  ArrowColor #444444
+}
+skinparam rectangle {
+  BorderColor #1F3864
+  FontColor #000000
+}
+skinparam actor {
+  BorderColor #1F3864
+  FontColor #000000
+}
+
+title Africa Delivery — ключевые сценарии MVP (15.10)
+
+actor "Покупатель" as Buyer
+actor "Покупатель\nбез интернета" as BuyerUssd
+actor "Продавец" as Seller
+actor "Оператор поддержки\nи модерации" as Ops
+actor "Руководство\n(CEO, инвестор)" as Ceo
+
+
+BuyerUssd -|> Buyer
+
+rectangle "Платформа Africa Delivery" {
+  rectangle "Покупка" {
+    usecase "Войти по номеру телефона (OTP)" as UC_Login
+    usecase "Дать или отозвать согласие\nна обработку данных и рассылки" as UC_Consent
+    usecase "Найти товар в каталоге\n(работает с кешем офлайн)" as UC_Browse
+    usecase "Заказать через USSD-меню" as UC_Ussd
+    usecase "Оформить заказ\nс доставкой в пункт выдачи" as UC_Order
+    usecase "Оплатить заказ\n(M-Pesa, Flutterwave)" as UC_Pay
+    usecase "Получить уведомление\n(SMS, WhatsApp, push)" as UC_Notify
+    usecase "Отследить статус заказа" as UC_Track
+    usecase "Отменить заказ\nс возвратом оплаты" as UC_Cancel
+    usecase "Просмотреть историю заказов\n(кабинет покупателя)" as UC_Cabinet
+  }
+  rectangle "Продажа" {
+    usecase "Зарегистрироваться как продавец\n(веб или WhatsApp)" as UC_SellerReg
+    usecase "Загрузить товары\n(веб, файл или WhatsApp)" as UC_Upload
+    usecase "Подтвердить заказ\nи передать в доставку" as UC_Fulfil
+    usecase "Получить выплату в день доставки\n(M-Pesa B2C, Flutterwave Payouts)" as UC_Payout
+  }
+  rectangle "Бэк-офис и аналитика" {
+    usecase "Модерировать товары\nи проверить продавца (KYC)" as UC_Moderate
+    usecase "Разобрать обращение покупателя" as UC_Support
+    usecase "Смотреть базовую аналитику:\nрегистрации, заказы, выручка" as UC_Dash
+  }
+}
+
+actor "Платёжный провайдер\n(M-Pesa, Flutterwave,\nPaystack)" as Pay <<system>>
+actor "Логистический партнёр\n(Sendbox, Sendy)" as Log <<system>>
+actor "Шлюз сообщений\n(SMS/USSD, WhatsApp, push)" as Msg <<system>>
+
+Buyer --> UC_Login
+Buyer --> UC_Consent
+Buyer --> UC_Browse
+Buyer --> UC_Order
+Buyer --> UC_Track
+Buyer --> UC_Cancel
+Buyer --> UC_Cabinet
+BuyerUssd --> UC_Ussd
+
+UC_Ussd ..> UC_Order : <<include>>
+UC_Order ..> UC_Pay : <<include>>
+UC_Order ..> UC_Notify : <<include>>
+
+Seller --> UC_SellerReg
+Seller --> UC_Upload
+Seller --> UC_Fulfil
+Seller --> UC_Payout
+
+Ops --> UC_Moderate
+Ops --> UC_Support
+Ceo --> UC_Dash
+
+UC_Pay --> Pay
+UC_Cancel --> Pay
+UC_Fulfil --> Log
+UC_Track --> Log
+UC_Notify --> Msg
+
+@enduml

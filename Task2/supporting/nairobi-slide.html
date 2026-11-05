@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Africa Delivery — решение по архитектуре</title>
+<style>
+  @page { size: 1920px 1080px; margin: 0; }
+  :root {
+    --ink: #14213d; --muted: #5b6478; --line: #d6dbe4; --brand: #1f3864; --accent: #0b7a4b;
+    --warn: #b42318; --soft: #eef3fa; --soft-green: #e8f5ee; --soft-red: #fdecea; --amber: #8a5a00; --soft-amber: #fff4dc;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #ffffff; }
+  body { width: 1920px; height: 1080px; font-family: "Helvetica Neue", Arial, sans-serif; color: var(--ink);
+         padding: 44px 64px 40px; display: grid; grid-template-rows: auto minmax(0,1fr) auto; gap: 22px; }
+  header h1 { margin: 0; font-size: 46px; letter-spacing: -0.5px; line-height: 1.1; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 8px 0 0; font-size: 21px; color: var(--muted); }
+  main { display: grid; grid-template-columns: 1.12fr 1.04fr 0.94fr; gap: 24px; min-height: 0; }
+  section { border: 1.5px solid var(--line); border-radius: 18px; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  section h2 { margin: 0; font-size: 25px; color: var(--brand); }
+  table { border-collapse: collapse; width: 100%; font-size: 22px; }
+  th, td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 18px; color: var(--muted); font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pick { background: var(--soft-green); font-weight: 700; }
+  .bad { color: var(--warn); }
+  .note { font-size: 17px; color: var(--muted); margin: 0; }
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .kpi { background: var(--soft); border-radius: 12px; padding: 10px 12px; }
+  .kpi b { display: block; font-size: 34px; color: var(--brand); }
+  .kpi span { font-size: 17px; color: var(--muted); }
+  .kpi.red { background: var(--soft-red); } .kpi.red b { color: var(--warn); }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+  .layer { border-radius: 12px; padding: 12px 16px; font-size: 20px; line-height: 1.35; }
+  .layer strong { display: block; font-size: 21px; margin-bottom: 2px; }
+  .l1 { background: var(--soft); } .l2 { background: #dfe8f6; border: 2px solid var(--brand); }
+  .l3 { background: var(--soft); } .l4 { background: var(--soft-amber); }
+  .arrow { text-align: center; color: var(--muted); font-size: 16px; line-height: 1; }
+  ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  li { font-size: 21px; line-height: 1.32; padding-left: 0; }
+  li b { color: var(--ink); }
+  li em { font-style: normal; color: var(--muted); }
+  footer { display: grid; grid-template-columns: auto repeat(4, 1fr); gap: 16px; align-items: stretch; }
+  footer .lead { font-size: 22px; font-weight: 700; color: var(--brand); align-self: center; padding-right: 6px; }
+  .ask { border-left: 6px solid var(--accent); background: var(--soft-green); border-radius: 10px; padding: 10px 14px; font-size: 18px; line-height: 1.3; }
+  .ask b { display: block; font-size: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Africa Delivery — запуск 15 октября: <span>модульный монолит</span></h1>
+  <p>Нигерия и Кения · Найроби, 19.08.2026</p>
+</header>
+
+<main>
+  <section>
+    <h2>Варианты архитектуры</h2>
+    <table>
+      <thead><tr><th></th><th>A. Модульный<br>монолит</th><th>B. SOA,<br>7 сервисов</th><th>C. Микро&shy;сервисы<br>(CTO)</th></tr></thead>
+      <tbody>
+        <tr><td>MVP готов</td><td class="num pick">15.10</td><td class="num">ноябрь</td><td class="num bad">янв–фев 2027</td></tr>
+        <tr><td>Облако + SaaS, $/мес</td><td class="num pick">3 000</td><td class="num bad">5 700</td><td class="num bad">15 400<br>+ Oracle $236k</td></tr>
+        <tr><td>Команда, чел.</td><td class="num pick">6</td><td class="num bad">10</td><td class="num bad">17</td></tr>
+        <tr><td>TCO 5 лет*, $M</td><td class="num pick">9,8</td><td class="num">12,6</td><td class="num">17,8</td></tr>
+        <tr><td>TCO 5 лет* + простой, $M</td><td class="num pick">14,8</td><td class="num">17,7</td><td class="num">18,8</td></tr>
+      </tbody>
+    </table>
+    <p class="note">* без транзакционных расходов: они одинаковы для всех вариантов ($66M). Для C принят SLO 99,99%, A и B — 99,95%. Цены и источники — price-list.md.</p>
+    <div class="kpis">
+      <div class="kpi"><b>$3,54 → $1,12</b><span>стоимость заказа: запуск → 12&#8209;й месяц</span></div>
+      <div class="kpi red"><b>$1,7M</b><span>цена ошибки: построить под 10M и получить 50 тыс. (против $0,25M в обратном случае)</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Что запускаем 15.10</h2>
+    <div class="stack">
+      <div class="layer l1"><strong>Каналы</strong>Приложение на React Native с офлайн-кешем · USSD и SMS · WhatsApp для продавцов · веб-кабинет</div>
+      <div class="arrow">▼</div>
+      <div class="layer l2"><strong>Платформа на Go: один модульный монолит</strong>каталог · заказы · платежи и выплаты в день доставки · уведомления · продавцы · доставка · согласия · базовая аналитика</div>
+      <div class="arrow">▼</div>
+      <div class="layer l3"><strong>Managed Kubernetes + PostgreSQL</strong>3 зоны доступности + DR · SLO оплаты 99,95% · ПДн граждан Нигерии хранятся в Нигерии</div>
+      <div class="arrow">▼</div>
+      <div class="layer l4"><strong>Партнёры через адаптеры</strong>M-Pesa · Flutterwave · Paystack · Sendbox · Sendy · SMS/USSD-шлюз</div>
+    </div>
+    <p class="note">Стандарты платформы: Go, Kubernetes, GitOps, OpenTelemetry, чек-лист Cloud Native.</p>
+  </section>
+
+  <section>
+    <h2>Отложенные решения и триггеры пересмотра</h2>
+    <ul>
+      <li><b>Микросервисы</b> <em>— при &gt; 2 000 RPS на каталог или &gt; 3 командах (≈ 2-й год)</em></li>
+      <li><b>Kafka, Istio</b> <em>— при &gt; 5 потребителях события или &gt; 10 сервисах</em></li>
+      <li><b>Active-active между регионами</b> <em>— когда минута простоя будет стоить &gt; $2 500 (≈ 3-й год)</em></li>
+      <li><b>Oracle, СУБД и брокеры в собственной эксплуатации</b> <em>— не делаем</em></li>
+      <li><b>Своя логистика и платёжная оркестрация</b> <em>— после расчёта Build/Buy</em></li>
+      <li><b>Живой дашборд с обновлением раз в минуту</b> <em>— если часового отчёта не хватит для решений во время распродаж</em></li>
+      <li><b>Токенная лояльность</b> <em>— исследование, оценка к апрелю 2027</em></li>
+      <li><b>Окончательная схема размещения данных</b> <em>— после заключения юристов, переключение без переписывания</em></li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <div class="lead">Решения<br>сегодня</div>
+  <div class="ask"><b>Инвестор</b>SLO по сервисам: оплата 99,95%, каталог 99,9% вместо единых 99,99%</div>
+  <div class="ask"><b>CFO</b>Подтвердить закупку облака по счёту: старт сегодня, до 3 недель, доступ к 08.09</div>
+  <div class="ask"><b>CEO</b>Объём MVP: каталог, заказ и оплата, уведомления, кабинет покупателя, базовая аналитика; остальное — в roadmap</div>
+  <div class="ask"><b>CTO</b>Принять ADR-001 с триггерами выделения сервисов</div>
+</footer>
+</body>
+</html>
