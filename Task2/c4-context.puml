@@ -1,0 +1,52 @@
+@startuml c4-context
+!include <C4/C4_Context>
+
+title Africa Delivery — C4 Context (MVP: Нигерия и Кения)
+
+Person(buyer, "Покупатель", "Смартфон Android/iOS, 3G/4G с обрывами связи")
+Person(buyer_ussd, "Покупатель без интернета", "Кнопочный телефон: USSD и SMS")
+Person(seller, "Продавец (МСБ)", "Веб-кабинет или WhatsApp")
+Person(ops, "Оператор поддержки и модерации", "Бэк-офис")
+Person(ceo, "Руководство", "CEO, инвестор: базовая аналитика, в том числе с телефона")
+
+System(platform, "Платформа Africa Delivery", "Маркетплейс: каталог, заказы, платежи, выплаты продавцам, уведомления, кабинеты, аналитика. Модульный монолит на Go")
+
+System_Ext(mpesa, "M-Pesa (Daraja API)", "Мобильные деньги, Кения")
+System_Ext(flw, "Flutterwave", "Карты, переводы, мобильные деньги; Нигерия и Кения")
+System_Ext(paystack, "Paystack", "Резервный платёжный провайдер, Нигерия")
+System_Ext(sendbox, "Sendbox API", "Доставка и пункты выдачи, Нигерия")
+System_Ext(sendy, "Sendy API", "Доставка и пункты выдачи, Кения")
+System_Ext(wa, "WhatsApp Business API", "Через BSP-провайдера")
+System_Ext(sms, "SMS/USSD-шлюз", "Агрегатор мобильных операторов NG и KE")
+System_Ext(push, "FCM / APNs", "Push-уведомления")
+
+Rel_D(buyer, platform, "Ищет товары, оформляет и оплачивает заказ, отслеживает статус", "HTTPS/JSON, мобильное приложение")
+Rel_D(buyer_ussd, sms, "Набирает USSD-код, получает SMS о заказе", "USSD/SMS")
+Rel_D(seller, platform, "Регистрируется, загружает товары, подтверждает заказы", "HTTPS, веб-кабинет")
+Rel_D(seller, wa, "Передаёт товары и подтверждает заказы в чате", "WhatsApp")
+Rel_D(ops, platform, "Модерирует каталог, проверяет продавцов (KYC), разбирает обращения", "HTTPS")
+Rel_D(ceo, platform, "Смотрит регистрации, заказы и выручку", "HTTPS")
+
+BiRel_D(platform, wa, "Отправляет уведомления о заказах; получает сообщения продавцов", "HTTPS, webhook")
+BiRel_D(platform, sms, "Отправляет SMS и ответы USSD-меню; получает USSD-сессии и входящие SMS", "HTTPS, webhook")
+Rel_L(platform, push, "Отправляет push-уведомления", "HTTPS")
+
+Rel_D(platform, mpesa, "Запрашивает оплату (STK Push), выплачивает продавцам; статус через callback", "HTTPS/JSON")
+Rel_D(platform, flw, "Принимает платежи, выплачивает продавцам; статус через webhook", "HTTPS/JSON")
+Rel_D(platform, paystack, "Принимает платежи при отказе Flutterwave", "HTTPS/JSON")
+Rel_D(platform, sendbox, "Создаёт отправления, получает статусы доставки", "HTTPS/JSON")
+Rel_D(platform, sendy, "Создаёт отправления, получает статусы доставки", "HTTPS/JSON")
+
+Lay_R(ops, ceo)
+Lay_R(ceo, buyer)
+Lay_R(buyer, seller)
+Lay_R(seller, buyer_ussd)
+Lay_R(mpesa, flw)
+Lay_R(flw, paystack)
+Lay_R(paystack, sendbox)
+Lay_R(sendbox, sendy)
+Lay_R(sendy, wa)
+Lay_R(wa, sms)
+
+SHOW_LEGEND()
+@enduml
