@@ -1,0 +1,85 @@
+@startuml observability
+title Africa Delivery — схема сбора телеметрии (MVP)
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowColor #444444
+skinparam rectangle {
+  BorderColor #555555
+  FontColor #000000
+}
+skinparam node {
+  BorderColor #555555
+  FontColor #000000
+}
+skinparam cloud {
+  BorderColor #555555
+  FontColor #000000
+}
+
+actor "Покупатель\n(приложение React Native)" as user
+actor "Дежурный инженер" as oncall
+actor "CTO, CEO" as mgmt
+
+cloud "Sentry" as sentry #F3E5F5 {
+  rectangle "Краши, ANR,\nRUM: first_product_visible" as rum #FFFFFF
+}
+
+node "Основной облачный регион (managed Kubernetes)" as region #E3F2FD {
+  rectangle "Ingress / балансировщик\nметрики HTTP по маршрутам" as ingress #FFFFFF
+  rectangle "Монолит на Go: API + BFF\nOTel SDK: RED-метрики, трейсы,\nJSON-логи с trace_id" as app #FFFFFF
+  rectangle "Воркер на Go\nOTel SDK; trace context\nв атрибутах сообщений очереди" as worker #FFFFFF
+  rectangle "OpenTelemetry Collector\nсбор логов узлов, kube-state-metrics,\nмаскирование ПДн,\ntail sampling трейсов" as otel #FFF8E1
+  rectangle "Managed PostgreSQL, Valkey,\nочередь, CDN\n(метрики облачного провайдера)" as managed #FFFFFF
+}
+
+node "Площадка ПДн, Нигерия" as ng #E8F5E9 {
+  rectangle "Хранилище ПДн\nPostgreSQL + node/postgres\nexporter" as pii #FFFFFF
+  rectangle "OTel Collector (агент)\nтолько метрики и\nобезличенные логи" as otelng #FFF8E1
+  rectangle "Синтетика\n(Лагос)" as probe #FFFFFF
+}
+
+rectangle "Синтетика\n(Найроби, малая ВМ)" as probeke #FFFFFF
+
+rectangle "Адаптеры партнёров\nM-Pesa, Flutterwave, Paystack,\nSendbox, Sendy, SMS, WhatsApp" as partners #FCE4EC
+
+cloud "Grafana Cloud" as grafana #EDE7F6 {
+  rectangle "Метрики\n(Prometheus / Mimir)" as mimir #FFFFFF
+  rectangle "Логи (Loki)" as loki #FFFFFF
+  rectangle "Трейсы (Tempo)" as tempo #FFFFFF
+  rectangle "SLO и burn-rate алерты" as slo #FFFFFF
+  rectangle "Дашборды: Executive /\nService / Deep dive" as dash #FFFFFF
+  rectangle "Grafana IRM\n(дежурства, эскалация)" as irm #FFFFFF
+}
+
+user --> rum : "ошибки, RUM\n(HTTPS)"
+user --> ingress : "запросы API\n(traceparent)"
+ingress --> app
+app --> worker : "очередь\n(trace context)"
+app ..> partners : "вызовы с таймаутом\nи circuit breaker"
+worker ..> partners
+
+app --> otel : "OTLP: метрики,\nтрейсы, логи"
+worker --> otel : "OTLP"
+ingress --> otel : "метрики ingress"
+managed --> mimir : "облачная интеграция\n(pull метрик)"
+otel --> mimir : "remote write"
+otel --> loki : "логи без ПДн"
+otel --> tempo : "100% ошибок и медленных,\n10% остальных"
+
+pii --> otelng : "метрики"
+otelng --> mimir : "remote write"
+probe --> mimir : "результаты проверок\nоформления заказа и каталога"
+probeke --> mimir : "результаты проверок"
+
+mimir --> slo
+slo --> irm : "SEV1–SEV3"
+irm -down-> oncall : "звонок, SMS,\nTelegram"
+dash -down-> mgmt : "Executive"
+mgmt -[hidden]left- oncall
+mimir --> dash
+loki --> dash
+tempo --> dash
+rum ..> dash : "ссылки на\nтрейсы по trace_id"
+
+@enduml
