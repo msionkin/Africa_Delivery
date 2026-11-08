@@ -1,0 +1,144 @@
+@startuml capability-map
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam backgroundColor #FFFFFF
+skinparam nodesep 18
+skinparam ranksep 14
+skinparam rectangle {
+  FontColor #000000
+  BorderColor #555555
+}
+skinparam rectangle<<l1>> {
+  BackgroundColor #F2F2F2
+  BorderColor #333333
+  FontStyle bold
+  FontSize 14
+}
+skinparam rectangle<<build>> {
+  BackgroundColor #DCE8F7
+  BorderColor #1F4E79
+}
+skinparam rectangle<<buy>> {
+  BackgroundColor #E2F0D9
+  BorderColor #38761D
+}
+skinparam rectangle<<partner>> {
+  BackgroundColor #FCE5CD
+  BorderColor #B45F06
+}
+skinparam rectangle<<pad>> {
+  BackgroundColor #F2F2F2
+  BorderColor #F2F2F2
+  FontColor #F2F2F2
+}
+hide stereotype
+<style>
+rectangle {
+  MinimumWidth 260
+}
+</style>
+
+title Africa Delivery — Capability Map (L1 / L2)
+rectangle "1. Продавцы и ассортимент" <<l1>> as L1 {
+  rectangle "1.1 Онбординг и верификация продавцов\n<size:10>Build · Buy KYC с M6</size>" <<build>> as C11
+  rectangle "1.2 Каталог и модерация контента\n<size:10>Build · MVP</size>" <<build>> as C12
+  rectangle "1.3 Цены, остатки и промо\n<size:10>Build · MVP</size>" <<build>> as C13
+  rectangle " \n<size:10> </size>" <<pad>> as P14
+}
+rectangle "2. Привлечение и поиск" <<l1>> as L2 {
+  rectangle "2.1 Поиск и навигация\n<size:10>Build · MVP</size>" <<build>> as C21
+  rectangle "2.2 Маркетинг с согласиями\n<size:10>Partner + Build · MVP</size>" <<partner>> as C22
+  rectangle "2.3 Отзывы и рейтинги\n<size:10>Build · M6</size>" <<build>> as C23
+  rectangle "2.4 Локализация\n<size:10>Build + Buy · M12</size>" <<build>> as C24
+}
+rectangle "3. Продажи" <<l1>> as L3 {
+  rectangle "3.1 Корзина и оформление заказа\n<size:10>Build · MVP</size>" <<build>> as C31
+  rectangle "3.2 Управление заказами и отменами\n<size:10>Build · MVP</size>" <<build>> as C32
+  rectangle "3.3 Возвраты\n<size:10>Build + Partner · M6</size>" <<build>> as C33
+  rectangle "3.4 B2B-продажи\n<size:10>Build + Partner · M12</size>" <<build>> as C34
+}
+rectangle "4. Платежи и расчёты" <<l1>> as L4 {
+  rectangle "4.1 Приём платежей\n<size:10>Partner + Build · MVP</size>" <<partner>> as C41
+  rectangle "4.2 Выплаты продавцам\n<size:10>Partner + Build · MVP</size>" <<partner>> as C42
+  rectangle "4.3 Возврат денег и сверка\n<size:10>Build · MVP</size>" <<build>> as C43
+  rectangle " \n<size:10> </size>" <<pad>> as P44
+  rectangle " \n<size:10> </size>" <<pad>> as P45
+}
+rectangle "5. Доставка и выдача" <<l1>> as L5 {
+  rectangle "5.1 Доставка через партнёров\n<size:10>Partner + Build · MVP</size>" <<partner>> as C51
+  rectangle "5.2 Пункты выдачи\n<size:10>Partner · MVP → M12</size>" <<partner>> as C52
+  rectangle "5.3 Отслеживание отправлений\n<size:10>Build · MVP → M6</size>" <<build>> as C53
+  rectangle " \n<size:10> </size>" <<pad>> as P54
+  rectangle " \n<size:10> </size>" <<pad>> as P55
+}
+rectangle "6. Каналы и коммуникации" <<l1>> as L6 {
+  rectangle "6.1 Мобильное приложение\n<size:10>Build + Buy OTA · MVP</size>" <<build>> as C61
+  rectangle "6.2 USSD и SMS\n<size:10>Partner + Build · MVP</size>" <<partner>> as C62
+  rectangle "6.3 WhatsApp-канал продавца\n<size:10>Partner + Build · MVP</size>" <<partner>> as C63
+  rectangle "6.4 Уведомления\n<size:10>Build + Partner · MVP</size>" <<build>> as C64
+  rectangle "6.5 Поддержка клиентов\n<size:10>Build → Buy с M6</size>" <<buy>> as C65
+}
+rectangle "7. Доверие и комплаенс" <<l1>> as L7 {
+  rectangle "7.1 Идентификация и доступ\n<size:10>Build · MVP</size>" <<build>> as C71
+  rectangle "7.2 Согласия и защита ПДн\n<size:10>Build · MVP</size>" <<build>> as C72
+  rectangle "7.3 Антифрод\n<size:10>Build + Partner · MVP → M12</size>" <<build>> as C73
+}
+rectangle "8. Аналитика" <<l1>> as L8 {
+  rectangle "8.1 Аналитика руководства\n<size:10>Build → Buy DWH с M6</size>" <<build>> as C81
+  rectangle "8.2 Аналитика продавца\n<size:10>Build · M6</size>" <<build>> as C82
+  rectangle " \n<size:10> </size>" <<pad>> as P83
+}
+rectangle "9. Технологическая платформа" <<l1>> as L9 {
+  rectangle "9.1 Облако и DR\n<size:10>Buy · MVP</size>" <<buy>> as C91
+  rectangle "9.2 Наблюдаемость\n<size:10>Buy · MVP</size>" <<buy>> as C92
+  rectangle "9.3 Доставка ПО\n<size:10>Buy · MVP</size>" <<buy>> as C93
+}
+legend right
+  |= Цвет |= Основное решение |
+  |<#DCE8F7>| Build — строим сами |
+  |<#E2F0D9>| Buy — SaaS / managed |
+  |<#FCE5CD>| Partner — лицензиат, телеком, физическая сеть |
+  MVP — 15.10.2026, M6 — апрель 2027, M12 — октябрь 2027
+endlegend
+
+C11 -[hidden]down-> C12
+C12 -[hidden]down-> C13
+C13 -[hidden]down-> P14
+C21 -[hidden]down-> C22
+C22 -[hidden]down-> C23
+C23 -[hidden]down-> C24
+C31 -[hidden]down-> C32
+C32 -[hidden]down-> C33
+C33 -[hidden]down-> C34
+C41 -[hidden]down-> C42
+C42 -[hidden]down-> C43
+C43 -[hidden]down-> P44
+P44 -[hidden]down-> P45
+C51 -[hidden]down-> C52
+C52 -[hidden]down-> C53
+C53 -[hidden]down-> P54
+P54 -[hidden]down-> P55
+C61 -[hidden]down-> C62
+C62 -[hidden]down-> C63
+C63 -[hidden]down-> C64
+C64 -[hidden]down-> C65
+C71 -[hidden]down-> C72
+C72 -[hidden]down-> C73
+C81 -[hidden]down-> C82
+C82 -[hidden]down-> P83
+C91 -[hidden]down-> C92
+C92 -[hidden]down-> C93
+C11 -[hidden]right-> C21
+C21 -[hidden]right-> C31
+P14 -[hidden]down-> C41
+C24 -[hidden]down-> C51
+C34 -[hidden]down-> C61
+C41 -[hidden]right-> C51
+C51 -[hidden]right-> C61
+P45 -[hidden]down-> C71
+P55 -[hidden]down-> C81
+C65 -[hidden]down-> C91
+C71 -[hidden]right-> C81
+C81 -[hidden]right-> C91
+@enduml

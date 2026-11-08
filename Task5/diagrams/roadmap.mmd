@@ -1,0 +1,46 @@
+%%{init: {"theme": "base", "gantt": {"leftPadding": 190, "barHeight": 22, "barGap": 6, "fontSize": 13, "sectionFontSize": 14}, "themeVariables": {"background": "#FFFFFF", "primaryColor": "#DCE8F7", "primaryBorderColor": "#1F4E79", "primaryTextColor": "#000000", "sectionBkgColor": "#F3F6FA", "altSectionBkgColor": "#FFFFFF", "sectionBkgColor2": "#F3F6FA", "taskBkgColor": "#9DC3E6", "taskBorderColor": "#1F4E79", "taskTextColor": "#000000", "taskTextOutsideColor": "#000000", "taskTextLightColor": "#000000", "taskTextDarkColor": "#000000", "activeTaskBkgColor": "#FCE5CD", "activeTaskBorderColor": "#B45F06", "critBkgColor": "#F4B183", "critBorderColor": "#C00000", "doneTaskBkgColor": "#E2F0D9", "doneTaskBorderColor": "#38761D", "gridColor": "#BFBFBF", "todayLineColor": "#FFFFFF", "titleColor": "#000000", "fontSize": "13px"}}}%%
+gantt
+    title Africa Delivery — roadmap 2026–2027
+    dateFormat YYYY-MM-DD
+    axisFormat %m.%y
+    todayMarker off
+    tickInterval 1month
+
+    section Договоры и закупки
+    Закупка GCP, AWS, Layer3 по счёту             :crit, p1, 2026-08-18, 14d
+    Договоры Flutterwave, Paystack, Sendbox, Sendy, Africa's Talking, 360dialog :p2, 2026-08-18, 21d
+    Подключение M-Pesa - приём оплат и выплаты продавцам :crit, p3, 2026-08-18, 38d
+    Второй курьерский партнёр в Кении             :p4, 2026-09-01, 30d
+
+    section Основа (к M1, 15.09)
+    Платформа GKE, Cloud SQL, CI/CD, ArgoCD, наблюдаемость :a1, 2026-08-18, 21d
+    Узел NG в Layer3 и DR в AWS                   :a2, 2026-08-25, 28d
+    Каталог, загрузка товаров, OTP и согласия     :a3, 2026-08-25, 21d
+    Онбординг продавцов (пилот 10–15 в Лагосе)    :a4, 2026-09-01, 14d
+    M1 · заморозка объёма MVP                     :milestone, m1, 2026-09-15, 0d
+
+    section Продукт MVP (к M2, 15.10)
+    Заказы, платежи, выплаты, доставка            :b1, 2026-09-01, 28d
+    Уведомления, USSD, WhatsApp продавца          :b2, 2026-09-08, 21d
+    Приложение, сдача в сторы до 20.09            :crit, b3, 2026-08-25, 26d
+    100 продавцов и 5 000 SKU                     :b4, 2026-09-15, 25d
+    Нагрузочный тест и DR-учения                  :crit, b5, 2026-09-21, 10d
+    Страницы в сторах                             :milestone, m15, 2026-10-01, 0d
+    Штаб запуска в Найроби                        :b6, 2026-10-05, 16d
+    M2 · запуск MVP в Нигерии и Кении             :milestone, m2, 2026-10-15, 0d
+
+    section Месяцы 3–6
+    Наём 5 человек                                :c1, 2026-12-01, 31d
+    Track & trace, возвраты, отзывы :c2, 2026-11-01, 135d
+    Аналитика продавца, DWH, KYC :c3, 2026-12-15, 105d
+    ЮАР — Paystack ZA, курьер, POPIA              :c4, 2027-01-15, 90d
+    M6 · ЮАР и кабинет продавца с аналитикой      :milestone, m6, 2027-04-15, 0d
+
+    section Месяцы 7–12
+    Страны 4–5 (кандидаты Гана, Кот-д'Ивуар)      :d1, 2027-05-01, 153d
+    B2B — оптовые цены, счета                     :d2, 2027-05-01, 137d
+    Локализация EN, FR, суахили, хауса, йоруба    :d3, 2027-04-15, 168d
+    Антифрод в пунктах выдачи с видеофиксацией    :d4, 2027-06-01, 122d
+    Выделение каталога и уведомлений по триггерам :d5, 2027-04-15, 168d
+    Решение о своей логистике по триггеру         :milestone, m11, 2027-09-15, 0d
+    M12 · 5 стран, B2B                            :milestone, m12, 2027-10-15, 0d
