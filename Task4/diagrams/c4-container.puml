@@ -1,0 +1,78 @@
+@startuml c4-container
+!include <C4/C4_Container>
+
+LAYOUT_TOP_DOWN()
+AddRelTag("ng", $textColor="#2E7D32", $lineColor="#2E7D32", $lineStyle=DashedLine(), $legendText="Потоки узла NG (ПДн нигерийцев)")
+AddRelTag("dr", $textColor="#E65100", $lineColor="#E65100", $lineStyle=DottedLine(), $legendText="Репликация в резерв")
+title Africa Delivery — C4 Container (MVP), контейнеры сгруппированы по регионам развёртывания
+
+Person(buyer_ng, "Покупатель, Нигерия", "Приложение, 3G/4G")
+Person(buyer_ke, "Покупатель, Кения", "Приложение, 3G/4G; без интернета — USSD/SMS через агрегатор")
+Person(staff, "Продавец, оператор, CEO", "Веб-кабинет и бэк-офис")
+
+Container(app, "Мобильное приложение", "React Native", "Локальный кеш каталога, офлайн-очередь заказов; адрес PII-API берёт из политики страны")
+
+Boundary(gcp, "GCP africa-south1 — Йоханнесбург, ЮАР (основной регион, 3 зоны)") {
+  Container(cdn, "CDN + балансировщик", "Cloud CDN, HTTPS LB", "Статика, фото, веб-кабинеты")
+  Container(worker, "Воркер", "Go, GKE", "Outbox, уведомления, сверка, очистка по срокам хранения")
+  Container(api, "Ядро: модульный монолит (API + BFF)", "Go, GKE", "Каталог, заказы, платежи и выплаты, уведомления, продавцы, доставка, согласия, аналитика; PII Кении и ЮАР")
+  ContainerDb(db, "Основная БД", "Cloud SQL PostgreSQL HA", "Схема на модуль; заказы NG — только токены; pii_ke — шифрованные поля")
+  ContainerDb(cache, "Кеш", "Memorystore Valkey", "Каталог, сессии; без ПДн")
+  ContainerQueue(queue, "Очередь", "Pub/Sub", "События модулей")
+  ContainerDb(gcs, "Объектное хранилище", "Cloud Storage", "Фото, KYC KE, бэкапы")
+  Container(kms, "KMS", "Cloud KMS", "Ключи KE/ZA (первая обёртка)")
+}
+
+Boundary(ng, "Layer3 — Лагос, Нигерия (узел NG)") {
+  Container(edge, "Узел NG: PII-API", "Go, тот же монолит, Layer3 K8s", "Профили, адреса, KYC, согласия NG; отправка SMS/WhatsApp NG; адаптеры Sendbox, Flutterwave/Paystack NG")
+  ContainerDb(piidb, "PII-хранилище NG", "Layer3 managed PostgreSQL", "Шифрованные поля ПДн нигерийцев")
+  Container(bao, "OpenBao", "Transit, 3 пода", "Ключи NG; не покидают Нигерию")
+}
+
+Boundary(abv, "Layer3 — Абуджа, Нигерия (резерв узла NG)") {
+  ContainerDb(piirep, "Реплика PII NG", "PostgreSQL", "Реплика, бэкапы, снимки OpenBao")
+}
+
+Boundary(aws, "AWS af-south-1 — Кейптаун, ЮАР (DR)") {
+  ContainerDb(rds, "Резервная БД", "RDS PostgreSQL", "Подписчик логической репликации")
+  ContainerDb(s3, "Копия объектов и образов", "S3, ECR", "Фото, KYC KE, бэкапы, образы")
+  Container(dns, "DNS", "Route 53", "Переключение api.* и ng.api.*")
+  Container(awskms, "KMS", "AWS KMS", "Ключи KE/ZA (вторая обёртка)")
+}
+
+System_Ext(saas, "Grafana Cloud, Sentry", "Телеметрия без ПДн")
+System_Ext(pay, "M-Pesa, Flutterwave, Paystack", "Платежи и выплаты")
+System_Ext(dlv, "Sendbox (NG), Sendy (KE)", "Доставка и ПВЗ")
+System_Ext(msg, "SMS/USSD-агрегаторы, WhatsApp BSP, FCM/APNs", "Каналы уведомлений")
+
+Rel(buyer_ng, app, "Пользуется")
+Rel(buyer_ke, app, "Пользуется")
+Rel(staff, cdn, "Работает в кабинете", "HTTPS")
+Rel(app, cdn, "Каталог, заказы, токен покупателя", "HTTPS/JSON")
+Rel(app, edge, "Вход по OTP, профиль, адрес — только NG", "HTTPS/JSON", $tags="ng")
+Rel_D(cdn, api, "Проксирует API", "HTTPS")
+Rel(api, db, "Читает и пишет", "SQL")
+Rel(api, cache, "Cache-aside", "RESP")
+Rel(api, queue, "Публикует события", "gRPC")
+Rel(worker, queue, "Читает события", "gRPC")
+Rel(api, kms, "Разворачивает ключи KE/ZA", "HTTPS")
+BiRel_R(api, edge, "→ токен: отправка, доставка, оплата NG\n← вебхуки NG без ПДн", "HA VPN + mTLS", $tags="ng")
+Rel(edge, piidb, "Читает и пишет", "SQL/TLS", $tags="ng")
+Rel(edge, bao, "Шифрует и расшифровывает поля", "HTTPS", $tags="ng")
+Rel(piidb, piirep, "Асинхронная репликация", "PostgreSQL streaming", $tags="dr")
+Rel(db, rds, "Логическая репликация, RPO ≤ 5 мин", "TLS", $tags="dr")
+Rel(gcs, s3, "Копия раз в час", "HTTPS", $tags="dr")
+Rel(api, pay, "Платежи KE, выплаты", "HTTPS")
+Rel(edge, pay, "Платежи NG с данными покупателя", "HTTPS", $tags="ng")
+Rel(edge, dlv, "Отправления NG с адресом", "HTTPS", $tags="ng")
+Rel(api, dlv, "Отправления KE", "HTTPS")
+Rel(edge, msg, "SMS/WhatsApp на номера NG", "HTTPS", $tags="ng")
+Rel(worker, msg, "Push, SMS/WhatsApp KE, USSD", "HTTPS")
+Rel(api, saas, "Метрики, логи, трейсы без ПДн", "OTLP")
+
+Lay_R(gcp, ng)
+Lay_D(ng, abv)
+Lay_D(gcp, aws)
+
+SHOW_LEGEND()
+@enduml

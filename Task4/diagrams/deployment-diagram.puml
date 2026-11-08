@@ -1,0 +1,85 @@
+@startuml deployment-diagram
+!include <C4/C4_Deployment>
+
+LAYOUT_TOP_DOWN()
+title Africa Delivery — Deployment (MVP): основной регион, узел NG, DR
+
+Deployment_Node(gcp, "GCP africa-south1", "Йоханнесбург, ЮАР — основной регион") {
+  Deployment_Node(lb, "External HTTPS LB + Cloud CDN", "глобальный, PoP в Лагосе") {
+    Container(cdn, "CDN", "Cloud CDN", "Статика, фото, веб-кабинеты")
+  }
+  Deployment_Node(gke, "GKE regional cluster", "3 зоны, 3 узла e2-standard-2") {
+    Container(api, "core: модульный монолит", "Go, ≥ 3 пода в разных зонах", "API + BFF: каталог, заказы, платежи, уведомления, продавцы, доставка, согласия, аналитика (ADR-001)")
+    Container(worker, "core-worker", "Go, тот же монолит, 2 пода", "Фоновые задачи: outbox, уведомления, очистка")
+    Container(otel, "otel-collector", "OpenTelemetry", "Маскирование ПДн")
+    Container(argo, "argocd", "GitOps", "Развёртывание из Git")
+  }
+  Deployment_Node(sql, "Cloud SQL PostgreSQL HA", "db 2 vCPU/8 ГБ, 100 ГБ") {
+    ContainerDb(pg, "primary (зона a) + standby (зона b)", "PostgreSQL", "Синхронная репликация, RPO = 0")
+  }
+  Deployment_Node(mem, "Memorystore Valkey", "standard-small, primary + replica") {
+    ContainerDb(valkey, "cache", "Valkey", "Без ПДн")
+  }
+  Deployment_Node(svc, "Managed-сервисы региона", "africa-south1") {
+    Container(pubsub, "Pub/Sub", "очередь", "Хранение сообщений только в africa-south1")
+    ContainerDb(gcs, "Cloud Storage", "бакеты", "Фото, KYC KE, бэкапы")
+    Container(kms, "Cloud KMS", "ключи", "KE/ZA")
+  }
+  Deployment_Node(vpn, "Cloud HA VPN", "2 туннеля IPsec")
+}
+
+Deployment_Node(los, "Layer3 Лагос", "Нигерия — узел NG") {
+  Deployment_Node(l3k8s, "Layer3 Kubernetes", "3 ВМ 2 vCPU/8 ГБ") {
+    Container(edge, "ng-edge", "Go, тот же монолит, 2 пода", "Включены только модули ПДн: PII-API, отправка NG, адаптеры Sendbox/Flutterwave/Paystack")
+    Container(bao, "openbao", "3 пода, Raft", "Ключи NG")
+  }
+  Deployment_Node(l3db, "Layer3 managed PostgreSQL", "primary") {
+    ContainerDb(pii, "pii-ng", "PostgreSQL", "Шифрованные ПДн NG")
+  }
+}
+
+Deployment_Node(abv, "Layer3 Абуджа", "Нигерия — резерв узла NG") {
+  Deployment_Node(l3rep, "Layer3 managed PostgreSQL", "replica") {
+    ContainerDb(piirep, "pii-ng replica", "PostgreSQL", "Асинхронная, RPO ≤ 5 мин")
+  }
+  Deployment_Node(l3s3, "Layer3 Object Storage", "S3-совместимое") {
+    ContainerDb(baosnap, "Бэкапы PII и снимки OpenBao", "объекты", "Не покидают Нигерию")
+  }
+}
+
+Deployment_Node(aws, "AWS af-south-1", "Кейптаун, ЮАР — DR (тёплый резерв)") {
+  Deployment_Node(rdsn, "RDS PostgreSQL", "db.m6g.large Single-AZ") {
+    ContainerDb(rds, "pg-dr", "PostgreSQL", "Подписчик логической репликации")
+  }
+  Deployment_Node(eks, "EKS + ElastiCache + SQS", "создаются из Terraform при переключении") {
+    Container(apidr, "core / core-worker", "Go, модульный монолит", "Те же образы и Helm values")
+  }
+  Deployment_Node(awssvc, "S3, ECR, AWS KMS, Route 53", "работают постоянно") {
+    ContainerDb(s3, "Копия объектов и образов", "S3 + ECR", "Копия раз в час")
+    Container(dns, "DNS", "Route 53", "TTL 60 с, health checks")
+  }
+}
+
+Deployment_Node(ext, "SaaS и партнёры", "вне наших площадок") {
+  Container(saas, "Grafana Cloud, Sentry", "SaaS", "Телеметрия без ПДн")
+}
+
+Rel(cdn, api, "HTTPS")
+Rel(api, pg, "SQL/TLS")
+Rel(api, valkey, "RESP/TLS")
+Rel(api, pubsub, "gRPC")
+Rel(api, edge, "mTLS через HA VPN", "IPsec")
+Rel(edge, pii, "SQL/TLS")
+Rel(edge, bao, "Transit API")
+Rel(pii, piirep, "Streaming replication", "Лагос → Абуджа")
+Rel(bao, baosnap, "Резервная копия ключей (снимок Raft)", "раз в час")
+Rel(pg, rds, "Логическая репликация", "TLS, ≤ 5 мин")
+Rel(gcs, s3, "Копия объектов", "раз в час")
+Rel(otel, saas, "OTLP")
+
+Lay_R(gcp, los)
+Lay_D(los, abv)
+Lay_D(gcp, aws)
+
+SHOW_LEGEND()
+@enduml
